@@ -1,10 +1,11 @@
-# api/views.py
 from rest_framework import viewsets, mixins
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.filters import SearchFilter
 from django.shortcuts import get_object_or_404
-from posts.models import Post, Group, Comment, Follow
-from .serializers import PostSerializer, GroupSerializer, CommentSerializer, FollowSerializer
+from posts.models import Post, Group, Follow
+from .serializers import PostSerializer, GroupSerializer, CommentSerializer
+from .serializers import FollowSerializer
 from .permissions import IsAuthorOrReadOnly
 
 
@@ -47,7 +48,7 @@ class FollowViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     def get_queryset(self):
         return Follow.objects.filter(
-            user=self.request.user).select_related("user","following")
+            user=self.request.user).select_related("user", "following")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
