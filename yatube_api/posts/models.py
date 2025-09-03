@@ -1,76 +1,97 @@
 from django.contrib.auth import get_user_model
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
+
+from .constants import PREVIEW_LEN
 
 User = get_user_model()
 
 
 class Group(models.Model):
     title = models.CharField("Название", max_length=200)
-    slug = models.SlugField("Слаг", unique=True, max_length=50)
-    description = models.TextField("Описание", blank=True)
+    slug = models.SlugField("Слаг", unique=True)
+    description = models.TextField("Описание")
 
     class Meta:
-        ordering = ("title",)
+        verbose_name = "Группа"
+        verbose_name_plural = "Группы"
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.title
 
 
 class Post(models.Model):
-    text = models.TextField()
-    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+    text = models.TextField("Текст поста")
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='posts')
+        User, on_delete=models.CASCADE,
+        related_name="posts", verbose_name="Автор"
+    )
     image = models.ImageField(
-        upload_to='posts/', null=True, blank=True)
+        "Картинка", upload_to="posts/", blank=True, null=True)
     group = models.ForeignKey(
-        Group, on_delete=models.SET_NULL,
-        related_name='posts', null=True, blank=True
+        Group,
+        on_delete=models.SET_NULL,
+        related_name="posts",
+        null=True,
+        blank=True,
+        verbose_name="Группа",
     )
 
+    class Meta:
+        ordering = ("-pub_date",)
+        verbose_name = "Пост"
+        verbose_name_plural = "Посты"
+
     def __str__(self):
-        return self.text[:50]
+        return self.text[:PREVIEW_LEN]
 
 
 class Comment(models.Model):
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='comments')
     post = models.ForeignKey(
-        Post, on_delete=models.CASCADE, related_name='comments')
-    text = models.TextField()
+        Post, on_delete=models.CASCADE,
+        related_name="comments", verbose_name="Пост"
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name="comments", verbose_name="Автор"
+    )
+    text = models.TextField("Текст комментария")
     created = models.DateTimeField(
-        'Дата добавления', auto_now_add=True, db_index=True)
+        "Дата создания", auto_now_add=True, db_index=True)
 
-    def __str__(self) -> str:
-        return self.text[:50]
+    class Meta:
+        ordering = ("-created",)
+        verbose_name = "Комментарий"
+        verbose_name_plural = "Комментарии"
+
+    def __str__(self):
+        return f"""Комментарий {self.id} к посту
+        {self.post_id} от {self.author}: {self.text[:PREVIEW_LEN]}"""
 
 
 class Follow(models.Model):
     user = models.ForeignKey(
-        User, related_name='follower', on_delete=models.CASCADE,
-        help_text="Кто подписан"
+        User,
+        on_delete=models.CASCADE,
+        related_name="follower",
+        verbose_name="Подписчик",
     )
     following = models.ForeignKey(
-        User, related_name='following', on_delete=models.CASCADE,
-        help_text="На кого подписан"
+        User,
+        on_delete=models.CASCADE,
+        related_name="following",
+        verbose_name="Автор",
     )
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=("user", "following"),
-                name="unique_user_following"
-            )
-        ]
+        unique_together = ("user", "following")
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
 
     def clean(self):
-        if self.user_id == self.following_id:
-            raise ValidationError("Нельзя подписаться на самого себя.")
+        if self.user == self.following:
+            raise ValidationError("Нельзя подписаться на самого себя")
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
-
-    def __str__(self) -> str:
+    def __str__(self):
         return f"{self.user} -> {self.following}"
