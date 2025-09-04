@@ -10,8 +10,8 @@ from rest_framework.permissions import (
 
 from posts.models import Group, Post
 
-from .permissions import IsAuthorOrReadOnly
-from .serializers import (
+from api.permissions import IsAuthorOrReadOnly
+from api.serializers import (
     CommentSerializer,
     FollowSerializer,
     GroupSerializer,
@@ -39,17 +39,22 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
 
+    def get_post(self):
+        if not hasattr(self, "_post"):
+            self._post = get_object_or_404(Post, pk=self.kwargs.get("post_id"))
+        return self._post
+
     def get_queryset(self):
-        post = get_object_or_404(Post, pk=self.kwargs.get("post_id"))
-        return post.comments.select_related("author")
+        return self.get_post().comments.select_related("author")
 
     def perform_create(self, serializer):
-        post = get_object_or_404(Post, pk=self.kwargs.get("post_id"))
-        serializer.save(author=self.request.user, post=post)
+        serializer.save(author=self.request.user, post=self.get_post())
 
 
 class FollowViewSet(
-    mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
 ):
     serializer_class = FollowSerializer
     permission_classes = (IsAuthenticated,)

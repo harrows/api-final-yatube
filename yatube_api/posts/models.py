@@ -24,8 +24,10 @@ class Post(models.Model):
     text = models.TextField("Текст поста")
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        related_name="posts", verbose_name="Автор"
+        User,
+        on_delete=models.CASCADE,
+        related_name="posts",
+        verbose_name="Автор",
     )
     image = models.ImageField(
         "Картинка", upload_to="posts/", blank=True, null=True)
@@ -49,12 +51,16 @@ class Post(models.Model):
 
 class Comment(models.Model):
     post = models.ForeignKey(
-        Post, on_delete=models.CASCADE,
-        related_name="comments", verbose_name="Пост"
+        Post,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name="Пост",
     )
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        related_name="comments", verbose_name="Автор"
+        User,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name="Автор",
     )
     text = models.TextField("Текст комментария")
     created = models.DateTimeField(
@@ -66,8 +72,10 @@ class Comment(models.Model):
         verbose_name_plural = "Комментарии"
 
     def __str__(self):
-        return f"""Комментарий {self.id} к посту
-        {self.post_id} от {self.author}: {self.text[:PREVIEW_LEN]}"""
+        return (
+            f"Комментарий {self.id} к посту {self.post_id} от {self.author}: "
+            f"{self.text[:PREVIEW_LEN]}"
+        )
 
 
 class Follow(models.Model):
@@ -85,9 +93,14 @@ class Follow(models.Model):
     )
 
     class Meta:
-        unique_together = ("user", "following")
         verbose_name = "Подписка"
         verbose_name_plural = "Подписки"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "following"),
+                name="unique_user_following",
+            )
+        ]
 
     def clean(self):
         if self.user == self.following:
