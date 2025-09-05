@@ -8,8 +8,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 
-from posts.models import Group, Post
-
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (
     CommentSerializer,
@@ -17,6 +15,7 @@ from api.serializers import (
     GroupSerializer,
     PostSerializer,
 )
+from posts.models import Group, Post
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -40,9 +39,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
 
     def get_post(self):
-        if not hasattr(self, "_post"):
-            self._post = get_object_or_404(Post, pk=self.kwargs.get("post_id"))
-        return self._post
+        return get_object_or_404(Post, pk=self.kwargs.get("post_id"))
 
     def get_queryset(self):
         return self.get_post().comments.select_related("author")
